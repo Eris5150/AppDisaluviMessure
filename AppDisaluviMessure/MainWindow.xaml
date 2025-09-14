@@ -1,0 +1,208 @@
+﻿<Window x:Class="CortesAluminioWpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Plan de Corte - Singles vs Pairs" Height="720" Width="1100"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Encabezado / Inputs -->
+        <Border Grid.Row="0" Padding="12" BorderBrush="#DDD" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="245*"/>
+                    <ColumnDefinition Width="396*"/>
+                    <ColumnDefinition Width="291*"/>
+                    <ColumnDefinition Width="110*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Vertical" Margin="0,0,16,0">
+                    <TextBlock Text="Pieza original (m)" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBox x:Name="TxtStock" Width="100" Text="6"/>
+                        <TextBlock Text="   • Umbral fijo: 0.40 m"
+                                   Foreground="#666" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Vertical" Margin="0,0,16,0">
+                    <TextBlock Text="Agregar pieza requerida (m)" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0" VerticalAlignment="Center">
+                        <!-- Largo -->
+                        <TextBox x:Name="TxtAddPiece"
+                                 Width="90"
+                                 Margin="0,0,8,0"
+                                 ToolTip="Ej: 1.20"
+                                 KeyDown="TxtAddPiece_KeyDown"/>
+                        <!-- Cantidad -->
+                        <TextBlock Text="Cant:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="TxtQty" Width="42" Text="1" HorizontalContentAlignment="Center" Margin="0,0,6,0"/>
+                        <StackPanel Orientation="Vertical" Margin="0,-2,6,0">
+                            <Button x:Name="BtnQtyUp" Content="▲" Width="22" Height="18" Padding="0" Click="BtnQtyUp_Click"/>
+                            <Button x:Name="BtnQtyDown" Content="▼" Width="22" Height="18" Padding="0" Click="BtnQtyDown_Click"/>
+                        </StackPanel>
+                        <!-- Agregar -->
+                        <Button Content="Agregar" Width="82" Click="BtnAgregar_Click" IsDefault="True" Margin="0,0,6,0"/>
+                        <!-- Eliminar seleccionado -->
+                        <Button Content="Eliminar"
+                                Width="82"
+                                Background="#E53935"
+                                Foreground="White"
+                                Click="BtnEliminar_Click"/>
+                    </StackPanel>
+                    <TextBlock Text="Se ordenan automáticamente de mayor a menor. Verdes = en juego, rojas = usadas."
+                               Foreground="#666" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Vertical" Margin="0,0,16,0">
+                    <TextBlock Text="Estado de barra" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Total:" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="LblStockTotal" Margin="6,0,16,0" FontWeight="Bold"/>
+                        <TextBlock Text="Sobrante:" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="LblRemaining" Margin="6,0,0,0" FontWeight="Bold"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Orientation="Vertical" HorizontalAlignment="Center" Width="110">
+                    <Button Content="Restart" Width="120" Height="32" Click="BtnRestart_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Centro: Lista de piezas + acciones -->
+        <Grid Grid.Row="1" Margin="0,12,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3.5*"/>
+                <ColumnDefinition Width="4*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- DataGrid de piezas + botones -->
+            <GroupBox Header="Piezas requeridas (mayor → menor)" Grid.Column="0" Margin="0,0,12,0">
+                <Grid Height="215">
+                    <Grid.RowDefinitions>
+                        <!-- Deja que la altura la controle el DataGrid -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Fila de los botones con altura automática -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- TABLA (altura fija contenida + scroll visible + margen inferior corto) -->
+                    <DataGrid x:Name="GridPieces"
+                              Grid.Row="0"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              ItemsSource="{Binding PiecesView}"
+                              Height="160"
+                              Margin="0,0,0,5"
+                              ScrollViewer.VerticalScrollBarVisibility="Visible"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              ScrollViewer.CanContentScroll="False"
+                              EnableRowVirtualization="True"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel">
+                        <!-- Estilo de fila -->
+                        <DataGrid.ItemContainerStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="InPlay">
+                                        <Setter Property="Background" Value="#E6FFEF"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Used">
+                                        <Setter Property="Background" Value="#FFE6E6"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Excluded">
+                                        <Setter Property="Background" Value="#F0F0F0"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.ItemContainerStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Largo (m)" Binding="{Binding Length, StringFormat=F2}" Width="*"/>
+                            <DataGridTextColumn Header="Estado" Binding="{Binding Status}" Width="Auto" MinWidth="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- BOTONES -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                        <Button x:Name="BtnIniciar"
+                                Content="Iniciar corte (usa la pieza seleccionada)"
+                                Width="225" Height="26"
+                                Click="BtnIniciarCorte_Click"/>
+                        <Button x:Name="BtnBest"
+                                Content="Buscar mejor corte para sobrante"
+                                Width="204" Height="28" Margin="12,0,0,0"
+                                Click="BtnBestCut_Click"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <!-- Panel de resultado / sugerencias -->
+            <GroupBox Header="Cortes de esta barra" Grid.Column="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="Resumen cortes actuales" FontWeight="Bold"/>
+                        <TextBlock x:Name="LblResumenActual" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="1" BorderBrush="#EEE" BorderThickness="1" Padding="8" CornerRadius="6">
+                        <StackPanel>
+                            <TextBlock Text="Sugerencia de siguiente corte" FontWeight="Bold"/>
+                            <TextBlock x:Name="LblSugerencia" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="El sistema compara la mejor pieza única vs la mejor combinación de dos piezas ≤ sobrante. Si el sobrante baja de 0.40 m, la barra se termina automáticamente."
+                                       Foreground="#666" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                        <Button Content="Guardar línea" Width="160" Height="32" Click="BtnGuardarLinea_Click"/>
+                        <Button Content="Exportar a Excel" Width="160" Height="32" Margin="12,0,0,0" Click="BtnExportExcel_Click"/>
+                    </StackPanel>
+
+                </Grid>
+            </GroupBox>
+        </Grid>
+
+        <!-- Tabla de líneas guardadas -->
+        <GroupBox Header="Líneas guardadas (pieza original + cortes)" Grid.Row="2" Margin="0,0,0,8">
+            <TextBlock Text="(Aquí se apilan las combinaciones guardadas por cada barra)" Foreground="#666" Margin="8,4,0,4"/>
+        </GroupBox>
+
+        <!-- DataGrid de líneas guardadas (scroll + virtualización) -->
+        <DataGrid Grid.Row="3" x:Name="GridSaved"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True"
+                  Height="160"
+                  ScrollViewer.VerticalScrollBarVisibility="Visible"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                  ScrollViewer.CanContentScroll="True"
+                  EnableRowVirtualization="True"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  VirtualizingPanel.ScrollUnit="Pixel"
+                  Margin="0,24,0,45">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Pieza original (m)" Binding="{Binding Original, StringFormat=F2}" Width="150"/>
+                <DataGridTextColumn Header="Cortes" Binding="{Binding CutsDisplay}" Width="*"/>
+                <DataGridTextColumn Header="Residuo (m)" Binding="{Binding Residue, StringFormat=F2}" Width="150"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+    </Grid>
+</Window>
